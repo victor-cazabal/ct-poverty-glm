@@ -1,2 +1,2 @@
 # ct-poverty-glm
-Logistic regression analysis of Connecticut household poverty (ACS 2023). R/tidycensus data prep, GLM modeling, and exportable figures &amp; tables.
+CT poverty risk modeling with GLMs (ACS PUMS 2023). Reproducible R workflow, feature engineering (HCB, tenure, education), and polished results/figures.
