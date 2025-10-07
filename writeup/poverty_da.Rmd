@@ -1,0 +1,481 @@
+---
+title: "Modeling Household Poverty in Connecticut: A Data-Driven Analysis of Socioeconomic and Housing Determinants"
+author: "Victor Cazabal"
+date: "2024-12-01"
+output: pdf_document
+---
+
+```{r, echo=FALSE, message=FALSE}
+library(readr)
+ct_sample <- read_csv("ct_sample.csv")
+ct_sample$SCHL <- factor(ct_sample$SCHL)
+ct_sample$RACE <- factor(ct_sample$RACE)
+ct_sample$HICOV <- factor(ct_sample$HICOV)
+ct_sample$POV <- factor(ct_sample$POV)
+ct_sample$SP <- factor(ct_sample$SP)
+ct_sample$TEN <- factor(ct_sample$TEN)
+```
+
+
+## Introduction
+
+In the wake of national outrage over rising inflation and mounting concerns about the cost of living over the past couple of years, understanding the factors that drive household poverty has never been more critical. As policymakers and community organizations seek effective strategies to alleviate economic hardship, it is essential to identify and quantify the social and economic determinants that most strongly influence whether a household lives below the poverty line. This report contributes to that understanding by examining household-level data from Connecticut sourced from the 2023 American Community Survey (ACS) Public Use Microdata Sample (PUMS), accessed via the tidycensus package in R.
+
+In this analysis, we consider a variety of explanatory variables that reflect both structural and individual-level characteristics. These include the number of persons in a household (household size), single-parent status, educational attainment of the householder, race of the householder, housing cost burden, and health insurance coverage. By including measures of housing cost burden and healthcare access, we capture critical dimensions of financial strain that have proven especially salient in an era of increasing expenses and wage stagnation.
+
+Through this approach, the report aims to inform both policy and practice by highlighting which characteristics most strongly predict household poverty, thereby guiding interventions that target the root causes of economic instability in the region.
+
+## Exploratory Data Analysis
+
+As mentioned previously, the dataset used in this study was extracted from the 2023 American Community Survey (ACS) Public Use Microdata Sample (PUMS) and includes individual and household-level data for residents across the entire state of Connecticut. The data, accessed via the tidycensus package in R, provides a comprehensive snapshot of demographic, socioeconomic, and housing-related characteristics, which are key to understanding poverty dynamics in the state.
+
+That being said, the dataset used in this analysis contains 5000 rows and 8 columns, with each row representing a household head from Connecticut. The dataset includes a combination of variables capturing demographic, socioeconomic, and housing-related characteristics, all relevant to understanding poverty risk in the region. Below is an overview of the key variables included:
+
+\begin{itemize}
+  \item \textbf{POV (Below Poverty or Not)}: A binary variable indicating whether a household is below the federal poverty line (1 = below poverty, 0 = not). This is the primary dependent variable for the analysis.
+  \item \textbf{TEN (Tenure)}: Indicates whether the household is renter-occupied or owner-occupied. This variable provides insight into housing dynamics and socioeconomic status, as renters and owners often face different financial pressures.
+  \item \textbf{HICOV (Health Insurance Coverage)}: A binary variable indicating whether any member of the household has health insurance (1 = insured, 2 = uninsured). Lack of health insurance can be a significant driver of financial instability, making this variable critical for understanding household vulnerability.
+  \item \textbf{NP (Number of People in Household)}: A continuous variable representing household size. Larger households often face greater financial demands, and this variable helps capture the potential strain on household resources.
+  \item \textbf{SP (Single Parent in Household or Not)}: A binary variable indicating whether the household is headed by a single parent (1 = single parent, 0 = not). Single-parent households are often more financially vulnerable, as they typically rely on a single income source.
+  \item \textbf{HCB (Housing Cost Burden)}: A continuous variable capturing the percentage of household income spent on housing costs. This variable was calculated using two ACS variables:
+  \begin{itemize}
+    \item GRPIP: Gross rent as a percentage of income, applicable to renter households.
+    \item OCPIP: Selected monthly owner costs as a percentage of income, applicable to owner households. The HCB variable combines these measures to create a unified indicator of housing cost burden, allowing analysis across both renters and owners.
+  \end{itemize}
+  \item \textbf{SCHL (Educational Attainment of Householder)}: A categorical variable indicating the highest level of education completed by the household head. The categories include "High School or Less," "Some College or Associates," and "Bachelor’s Degree or Higher." Education level often correlates with income and employment opportunities, making it an important factor in poverty analysis.
+  \item \textbf{RACE (Race of Householder)}: A categorical variable indicating the race of the household head. The categories include "White," "Black or African American," "Asian," "Other Race," and "Two or More Races." This variable provides insight into racial disparities in economic vulnerability.
+  
+\end{itemize}
+
+Table 1 below displays the summary statistics for the continuous variables in our analysis. In order to check for any outliers, we have displayed each of these variables graphically in a histogram which can be seen in the figure below Table 1.
+
+
+\begin{table}[ht]
+```{r,results = "asis", fig.cap= "\\label{fig:fig1} Summary Measures", echo=FALSE, message= FALSE, warning=FALSE}
+
+##summary statistics
+cont_dat <- ct_sample[, c("NP", "HCB")]
+  
+min <- apply(cont_dat, 2, min)
+max <- apply(cont_dat, 2, max)
+mean <- apply(cont_dat, 2, mean)
+sd <- apply(cont_dat, 2, sd)
+median <- apply(cont_dat, 2, median)
+iqr <- apply(cont_dat, 2, IQR)
+summary.stat <- data.frame(mean, sd, median, iqr, min, max)
+library(xtable)
+options(xtable.floating = FALSE)
+options(xtable.timestamp = "")
+tabb <- xtable(summary.stat, label = 'Table 1')
+cat("\\begin{center}")
+cat("\\caption{Summary of the Continuous Variables}")
+print(tabb, comment = FALSE)
+cat("\\end{center}")
+
+```
+\end{table}
+
+```{r, fig.height = 2.5, fig.width = 8, fig.cap = "\\label{fig:figs}Histograms of Continuous Variables", echo =FALSE, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(GGally)
+library(dplyr)
+library(gridExtra)
+hist_np <- ggplot(ct_sample, aes(x=NP)) + geom_histogram(bins = 9, color = "black", fill = "lavender") + theme_classic() + labs(title = "Distribution of # of House Members", x="People", y = "Frequency") + theme(plot.title = element_text(size = 11))
+
+hist_hcb <- ggplot(ct_sample, aes(x=HCB)) + geom_histogram(bins = 11, color = "black", fill = "gold") + theme_classic() + labs(title = "Distribution of Housing Cost Burden %", x="Percentage", y = "Frequency") + theme(plot.title = element_text(size = 11))
+
+
+grid.arrange(hist_np, hist_hcb, ncol= 2)
+
+```
+
+The distribution of number of house members is unimodal, right skewed, with a couple of potential outliers. Similarly, the distribution of housing cost burden percentage is right skewed, but bimodal. This distribution doesn't have any significant outliers.
+
+Figure 2 illustrates the distributions of our categorical variables. The barplot for poverty status highlights that while the majority of people are not living under the poverty line, a notable portion are. The tenure barplot reveals that most individuals in our sample own a home, though a significant number rent. Educational attainment data shows nearly half of head householders have a college degree or higher. Regarding race, the majority of individuals identify as white. Similarly, most households are not single-parent households, and the majority have health insurance coverage.
+
+```{r, fig.height = 4, fig.width = 8, fig.cap = "\\label{fig:figs}Barplots of Categorical Variables", echo =FALSE}
+
+bar_ten <- ggplot(ct_sample, aes(x=TEN)) + geom_bar(color = "black", fill = "green") + theme_classic() + labs(title = "Barplot of Tenure", x="Tenure", y = "Frequency") + theme(plot.title = element_text(size = 8), axis.text.x = element_text(size = 3.5))
+
+bar_hicov <- ggplot(ct_sample, aes(x=HICOV)) + geom_bar(color = "black", fill = "red") + theme_classic() + labs(title = "Barplot of Health Insurance Status", x="Health Insurance Coverage?", y = "Frequency") + theme(plot.title = element_text(size = 8), axis.text.x = element_text(size = 4))
+
+bar_pov <- ggplot(ct_sample, aes(x=POV)) + geom_bar(color = "black", fill = "yellow") + theme_classic() + labs(title = "Barplot of Poverty Status", x="Lives Below Poverty Line?", y = "Frequency") + theme(plot.title = element_text(size = 8), axis.text.x = element_text(size = 4))
+
+bar_sp <- ggplot(ct_sample, aes(x=SP)) + geom_bar(color = "black", fill = "pink") + theme_classic() + labs(title = "Barplot of Single Parent Status", x="Single Parent?", y = "Frequency") + theme(plot.title = element_text(size = 8), axis.text.x = element_text(size = 4))
+
+bar_schl <- ggplot(ct_sample, aes(x=SCHL)) + geom_bar(color = "black", fill = "brown") + theme_classic() + labs(title = "Barplot of Educational Attainment", x="Education Level", y = "Frequency") + theme(plot.title = element_text(size = 6), axis.text.x = element_text(size = 4))
+
+bar_race <- ggplot(ct_sample, aes(x=RACE)) + geom_bar(color = "black", fill = "orange") + theme_classic() + labs(title = "Barplot of Race", x="Race", y = "Frequency") + theme(plot.title = element_text(size = 8), axis.text.x = element_text(size = 4))
+
+
+
+grid.arrange(bar_pov, bar_ten, bar_schl, bar_race, bar_sp, bar_hicov, ncol=3)
+
+```
+
+Next, we explore the relationship between each continuous variable and our response variable. We show this relationship using boxplots. 
+
+```{r, fig.height = 2, fig.width = 6, fig.cap = "\\label{fig:figs}Boxplots of Continuous Variables", echo =FALSE}
+box_np <- ggplot(ct_sample, aes(x = POV, y = NP)) +
+  geom_boxplot(fill = "steelblue") +
+  labs(
+    title = "Household Size (NP) by Poverty Status",
+    x = "Poverty Status",
+    y = "Number of People in Household (NP)"
+  ) + theme(plot.title = element_text(size = 8), axis.title.y = element_text(size = 6))
+
+# Boxplot for HCB by POV
+box_hcb <- ggplot(ct_sample, aes(x = POV, y = HCB)) +
+  geom_boxplot(fill = "tomato") +
+  labs(
+    title = "Housing Cost Burden (HCB) by Poverty Status",
+    x = "Poverty Status",
+    y = "Housing Cost Burden (%)"
+  ) + theme(plot.title = element_text(size = 8), axis.title.y = element_text(size = 6))
+
+grid.arrange(box_np, box_hcb, ncol=2)
+```
+
+Surprisingly, we don't see a clear difference between number of people in households among poverty status. These boxplots are nearly identical. On the other hand, housing cost burden is very high for those living under poverty compared to those who aren't. This is to be expected, however it's interesting to see that the 3rd quartile of the first boxplot is the 1st quartile of the second. This goes to show how much housing cost burden might affect poverty status.
+
+For our last part of our EDA, we explore the relationship of our categorical variables against the response variable.
+
+
+```{r, fig.height = 3.5, fig.width = 9.5, fig.cap = "\\label{fig:figs}Barplots of Categorical Variables", echo =FALSE}
+library(ggplot2)
+
+# POV by Tenure (TEN)
+barplot_ten <- ggplot(ct_sample, aes(x = TEN, fill = POV)) +
+  geom_bar(position = "fill") +  # "fill" shows proportions
+  labs(
+    title = "Proportion of Poverty by Tenure",
+    x = "Tenure (Owner vs. Renter)",
+    y = "Proportion",
+    fill = "Poverty Status"
+  ) +
+  scale_y_continuous(labels = scales::percent) + theme(plot.title = element_text(size = 8), axis.text.x = element_text(size = 3))
+
+# POV by Health Insurance Coverage (HICOV)
+barplot_hicov <- ggplot(ct_sample, aes(x = HICOV, fill = POV)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Proportion of Poverty by Health Insurance",
+    x = "Health Insurance Coverage (Yes vs. No)",
+    y = "Proportion",
+    fill = "Poverty Status"
+  ) +
+  scale_y_continuous(labels = scales::percent) + theme(plot.title = element_text(size = 8))
+
+# POV by Educational Attainment (SCHL)
+barplot_schl <- ggplot(ct_sample, aes(x = SCHL, fill = POV)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Proportion of Poverty by Education",
+    x = "Educational Attainment",
+    y = "Proportion",
+    fill = "Poverty Status"
+  ) +
+  scale_y_continuous(labels = scales::percent) + theme(plot.title = element_text(size = 8))
+
+# POV by Race (RACE)
+barplot_race <- ggplot(ct_sample, aes(x = RACE, fill = POV)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Proportion of Poverty by Race",
+    x = "Race",
+    y = "Proportion",
+    fill = "Poverty Status"
+  ) +
+  scale_y_continuous(labels = scales::percent) + theme(plot.title = element_text(size = 8), axis.text.x = element_text(size = 4))
+
+# POV by Single-Parent Status (SP)
+barplot_sp <- ggplot(ct_sample, aes(x = SP, fill = POV)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Proportion of Poverty by Single-Parent Status",
+    x = "Single-Parent Household (Yes vs. No)",
+    y = "Proportion",
+    fill = "Poverty Status"
+  ) +
+  scale_y_continuous(labels = scales::percent) + theme(plot.title = element_text(size = 8))
+
+grid.arrange(barplot_ten, barplot_hicov, barplot_schl, barplot_race, barplot_sp, ncol=3)
+
+```
+
+The barplots reveal notable trends in poverty rates across various categorical variables. Poverty rates are significantly higher among renters and those occupying a living space without paying rent. Interestingly, individuals who own their homes outright experience higher poverty rates than those with a mortgage. As anticipated, poverty rates are elevated for those lacking health insurance. Educational attainment shows a clear pattern, with the lowest poverty rates among those with a college degree or higher and the highest among those with a high school degree or less. Poverty rates are also disproportionately higher among individuals identifying as Black, of another race, or of two or more races. Finally, households led by single parents exhibit significantly higher poverty rates compared to other household types.
+
+## Modeling the data
+
+Through a greedy method, we found that the variable "NP" was the only variable that didn't significantly affect the model fit. Below you can find when examining the impact of household size (NP) on the model, the likelihood ratio test returned a p-value of 0.4, indicating no significant improvement in fit after including this variable. In other words, NP does not appear to provide meaningful additional explanatory power for poverty status beyond the other predictors already in the model. 
+
+```{r, echo=FALSE}
+ct_sample$TEN <- relevel(ct_sample$TEN, ref = "Owned/Mortgage")
+ct_sample$RACE <- relevel(ct_sample$RACE, ref = "White")
+
+model_full <- glm(
+  POV ~ SP + SCHL + HCB + HICOV + TEN + RACE + NP,
+  data = ct_sample,
+  family = binomial(link = "logit")
+)
+  
+main_model <- glm(
+  POV ~ SP + SCHL + HCB + HICOV + TEN + RACE,
+  data = ct_sample,
+  family = binomial(link = "logit")
+)
+
+anova(model_full, main_model, test= "Chisq")
+
+
+```
+Additionally, incorporating interaction terms revealed that the relationship between tenure (TEN) and housing cost burden (HCB), as well as the relationship between HCB and educational attainment (SCHL), significantly improved the model’s fit. The likelihood ratio tests for these interactions yielded extremely low p-values, indicating that these combined effects provide meaningful additional insights into how socioeconomic factors influence poverty status.
+
+```{r, echo=FALSE, warning =FALSE, message=FALSE}
+  
+main_model_2 <- glm(
+  POV ~ SP + SCHL + HCB + HICOV + TEN + RACE + HCB*TEN + HCB*SCHL,
+  data = ct_sample,
+  family = binomial(link = "logit")
+)
+
+anova(main_model, main_model_2, test= "Chisq")
+
+```
+Thus, the logistic regression model that we will use to predict poverty status is as follows:
+
+$\text{logit}(P(POV=1)) = \beta_0 + \beta_1(SP) + \beta_2(SCHL) + \beta_3(HCB) + \beta_4(HICOV) + \beta_5(TEN) + \beta_6(RACE) + \beta_7(HCB \times TEN) + \beta_8(HCB \times SCHL)$ 
+
+## Diagnostics
+
+Model diagnostics were conducted to evaluate the performance and validity of the selected logistic regression model. This process ensures that the model appropriately fits the data and meets the assumptions underlying logistic regression. Below you will find a binned residual plot used to evaluate the fit of the logistic regression model.
+
+```{r, fig.height = 3, fig.width = 4.5, fig.cap = "\\label{fig:figs}Binned Residual Plot", echo =FALSE, warning=FALSE, message=FALSE}
+library(arm)
+binnedplot(fitted(main_model_2), resid(main_model_2, type = "response"),
+           main = "Binned Residual Plot",
+           xlab = "Fitted Values (Predicted Probabilities)",
+           ylab = "Residuals")
+```
+
+The binned residual plot shows most residuals falling within the expected bounds, with no evident systematic patterns. While a slight fanning shape is observed, this is consistent with the natural behavior of residuals in logistic regression and does not indicate a lack of model fit. Next, we plot the residuals vs categorical predictors. 
+
+```{r, echo=FALSE}
+residuals <- resid(main_model_2, type = "response")
+ct_sample$residuals <- residuals
+
+ct_sample %>%
+  group_by(TEN) %>%
+  summarise(mean_resid = mean(residuals))
+
+ct_sample %>%
+  group_by(RACE) %>%
+  summarise(mean_resid = mean(residuals))
+
+ct_sample %>%
+  group_by(HICOV) %>%
+  summarise(mean_resid = mean(residuals))
+
+ct_sample %>%
+  group_by(SCHL) %>%
+  summarise(mean_resid = mean(residuals))
+
+ct_sample %>%
+  group_by(SP) %>%
+  summarise(mean_resid = mean(residuals))
+```
+Above, we have calculated average residual for each level of predictor. All means are close to 0, so we are confident residuals are not systematically biased for certain levels of categorical predictors. Finally, to better understand the interactions included in the model, I will explore how the relationship between the continuous variable (housing cost burden) and the predicted probability of poverty changes across the levels of the categorical variables (tenure and educational attainment). This will provide insights into the nuanced effects these predictors have when combined.
+
+```{r, fig.height = 3.5, fig.width = 8, fig.cap = "\\label{fig:figs}Binned Residual Plot", echo =FALSE, warning=FALSE, message=FALSE}
+ten_levels <- c("Owned/Mortgage", "Rented")
+schl_levels <- c("HS", "C")
+
+# Create a sequence of HCB values spanning the observed range
+hcb_range <- seq(min(ct_sample$HCB, na.rm = TRUE),
+                 max(ct_sample$HCB, na.rm = TRUE),
+                 length.out = 100)
+
+# For plotting, assume other variables are held at reference or typical values
+# You can set these to common values or the mode/median of your data.
+# Example: SP = 0 (no single parent), HICOV = 1 (insured), RACE = "White"
+typical_SP <- "0"
+typical_HICOV <- "1"
+typical_RACE <- "White"
+
+#-----------------------------
+# Interaction 1: HCB * TEN
+#-----------------------------
+# Create a data frame for predictions
+pred_data_ten <- expand.grid(
+  HCB = hcb_range,
+  TEN = ten_levels,
+  # For simplicity hold others constant
+  SP = typical_SP,
+  HICOV = typical_HICOV,
+  RACE = typical_RACE,
+  # Choose a level for SCHL or the most common category
+  SCHL = "HS"
+)
+
+# Get predicted probabilities
+pred_data_ten$pred_prob <- predict(main_model_2, newdata = pred_data_ten, type = "response")
+
+# Plot with a loess smoothing curve
+# We'll create separate plots or use facets to visualize each TEN level
+p_ten <- ggplot(pred_data_ten, aes(x = HCB, y = pred_prob, color = TEN)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = FALSE) +
+  labs(
+    title = "Predicted Probability of POV by HCB and TEN",
+    x = "Housing Cost Burden (HCB)",
+    y = "Predicted Probability of Poverty"
+  ) +
+  theme_minimal() + theme(plot.title = element_text(size = 8))
+
+#-----------------------------
+# Interaction 2: HCB * SCHL
+#-----------------------------
+# Create a data frame for predictions with two SCHL levels
+pred_data_schl <- expand.grid(
+  HCB = hcb_range,
+  SCHL = schl_levels,
+  # Other variables held constant
+  SP = typical_SP,
+  HICOV = typical_HICOV,
+  RACE = typical_RACE,
+  TEN = "Owned/Mortgage" # or choose another TEN level
+)
+
+# Get predicted probabilities
+pred_data_schl$pred_prob <- predict(main_model_2, newdata = pred_data_schl, type = "response")
+
+# Plot with a loess smoothing curve
+p_schl <- ggplot(pred_data_schl, aes(x = HCB, y = pred_prob, color = SCHL)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = FALSE) +
+  labs(
+    title = "Predicted Probability of POV by HCB and SCHL",
+    x = "Housing Cost Burden (HCB)",
+    y = "Predicted Probability of Poverty"
+  ) +
+  theme_minimal() + theme(plot.title = element_text(size = 8))
+
+grid.arrange(p_ten, p_schl, ncol=2)
+```
+
+
+The interaction plots provide valuable insights into the relationships captured by the model and support the validity of the included interaction terms. In the plot of housing cost burden (HCB) by tenure (TEN), the predicted probability of poverty increases more rapidly for renters compared to homeowners at lower HCB values, as indicated by the higher y-intercept and steeper initial slope of the renter line. The homeowner line, in contrast, exhibits a more gradual and curved increase, with both lines converging to similar slopes around HCB values of 75. Similarly, in the plot of HCB by educational attainment (SCHL), the predicted probabilities for individuals with a high school education (HS) start slightly higher than for those with a college education (C), but both lines follow a curved pattern. The HS line increases at a faster rate initially, before aligning with the slope of the C line at around HCB values of 65. These patterns highlight the differential effects of HCB across categories of TEN and SCHL, validating the inclusion of these interaction terms in the model.
+
+## Results 
+
+In this results section, we present the key findings from the fitted logistic regression model. After presenting the model summary, we report odds ratios and 95% confidence intervals for each predictor, providing an intuitive measure of how each factor influences the likelihood of poverty. Next, we evaluate the model’s overall fit using a likelihood ratio test to confirm that the chosen predictors significantly improve the explanation of the data. Finally, we compare the predictive accuracy of the full model against the null model by examining classification error rates, offering insight into how well the model distinguishes between households below and above the poverty line.
+
+Below you can find the model summary, stating estimates, standard errors and p-values for each predictor. 
+
+```{r, echo=FALSE}
+summary(main_model_2)
+```
+For those coefficients with very small p-values the interpretations of their estimates are:
+
+\begin{itemize}
+
+  \item \textbf{(Intercept)}: The negative intercept (-6.830) indicates that, when all predictors are at their baseline categories and set to zero, the log-odds of being below the poverty line are very low. In other words, in the reference scenario (e.g., college-educated, homeowner with mortgage, White race, etc.), the likelihood of poverty is quite small.
+
+  \item \textbf{SCHLHS}: A coefficient of 1.9357 for high school or less education compared to college education suggests that having lower educational attainment substantially increases the log-odds of poverty. This translates into a much higher chance of being below the poverty line for households headed by individuals with a high school degree or less.
+
+  \item \textbf{HCB (Housing Cost Burden)}: The coefficient 0.0581 means that for each one-unit increase in housing cost burden (e.g., a 1% increase in income spent on housing), the log-odds of poverty rise slightly. Although modest on a per-unit basis, consistently higher HCB values will increase the likelihood of poverty.
+
+  \item \textbf{TENOccupied (Occupying Without Payment)}: A large coefficient of 4.4016 indicates that households occupying a dwelling without paying rent are at a dramatically higher risk of poverty compared to the reference group (owners with a mortgage). This aligns with a very precarious housing situation often associated with severe economic hardship.
+
+  \item \textbf{TENRented (Renting)}: The coefficient 2.2702 shows that renters also face higher log-odds of poverty compared to owners with a mortgage, though not as extreme as those who occupy without payment. Still, renting is strongly linked to increased economic vulnerability.
+
+  \item \textbf{RACEOther}: With a coefficient of 0.7747, household heads identifying as “Other” race face higher log-odds of poverty than White household heads. Although less dramatic than some other predictors, this indicates a racial disparity in economic well-being.
+
+  \item \textbf{HCB:TENOwned/Free (Interaction)}: The small positive coefficient (0.0213) suggests that for households owning their home free and clear, the effect of HCB on poverty differs slightly compared to the reference category. Essentially, as HCB increases, the impact on poverty odds changes marginally depending on this tenure status.
+
+  \item \textbf{HCB:TENRented (Interaction)}: The negative coefficient (-0.0131) indicates that for renters, the relationship between HCB and poverty is slightly tempered compared to the reference category. While HCB still increases poverty risk, it does so at a somewhat reduced rate for renters.
+
+  \item \textbf{SCHLHS:HCB (Interaction)}: The negative interaction (-0.0157) means that for households with a high school degree or less, the increase in poverty odds with rising HCB is somewhat muted compared to those with a college education. Although they start off at a higher risk, the incremental effect of housing cost burden is slightly less steep for this group.
+
+\end{itemize}
+
+In summary, these coefficients and their interactions confirm that a household’s likelihood of poverty is shaped by a combination of education level, housing cost burden, housing tenure, and race. The interactions indicate that the effect of increasing housing cost burden varies depending on a household’s education and tenure status, reinforcing the complexity of factors influencing economic vulnerability.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Calculate Odds Ratios
+odds_ratios <- exp(coef(main_model_2))
+
+# Calculate Confidence Intervals for the Coefficients
+conf_int <- confint(main_model_2)
+
+# Transform CI from log-odds to Odds Ratios
+or_conf_int <- exp(conf_int)
+
+# Combine into a neat data frame
+results <- data.frame(
+  Predictor = names(odds_ratios),
+  OR = odds_ratios,
+  CI_lower = or_conf_int[,1],
+  CI_upper = or_conf_int[,2]
+)
+
+# Print the results
+print(results)
+```
+Some odds ratios worth mentioning include the odds ratio of 1.31 for the predictor "SP1". Holding all other predictors constant, this means that households with a single parent (SP = 1) are 31% more likely to be below the poverty line compared to households without a single parent (SP = 0).
+
+Another is the odds ratio of 6.93 for the predictor SCHLHS. Holding all other predictors constant, households where the head of the household has a high school education or less are 6.93 times more likely to be below the poverty line compared to households where the head of the household has a college education.
+
+Additionally, an odds ratio 1.06 for the predictor HCB means holding all other predictors constant, for every 1-unit increase in HCB (e.g., a 1% increase in the percentage of income spent on housing), the odds of being below the poverty line increase by 6%.
+
+A notable odds ratio is 81.58 for the predictor TENOccupied, which means, holding all other predictors constant, households occupying a living space without paying rent are 81.58 times more likely to be below the poverty line compared to households that own their home with a mortgage. Similarly, holding all other predictors constant, households that rent are 9.68 times more likely to be below the poverty line compared to households that own their home with a mortgage.
+
+Finally, holding all other predictors constant, households where the head identifies as "Other" race are 2.17 times more likely to be below the poverty line compared to households where the head identifies as White. Similarly, there's a 28% higher likelihood of poverty for Black-headed households compared to White-headed households.
+
+
+Next, we evaluate the model's overall model fit using the following likelihood ratio test.
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+null_model <- glm(POV ~ 1, 
+                  data = ct_sample, 
+                  family = binomial)
+
+anova(null_model, main_model_2, test = "Chisq")
+
+```
+
+The likelihood ratio test comparing the null model (intercept-only) to the full model with all chosen predictors shows a highly significant improvement in fit. The difference in deviance between the two models is 1283.1 over 16 degrees of freedom, and the p-value is less than 2.2e-16, indicating that the included predictors collectively explain the variation in poverty status far better than a model with no predictors. In other words, the full model provides a substantially improved understanding of the factors influencing whether a household is below the poverty line.
+
+Finally, we compare the predictive accuracy of the full model against the null model by calculating error rates.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Get predictions from both models
+null_pred_prob <- predict(null_model, type = "response")
+full_pred_prob <- predict(main_model_2, type = "response")
+
+# Convert predicted probabilities into binary predictions using a 0.5 threshold
+null_pred_class <- ifelse(null_pred_prob > 0.5, 1, 0)
+full_pred_class <- ifelse(full_pred_prob > 0.5, 1, 0)
+
+# Get actual POV values
+actual <- ct_sample$POV
+
+# Calculate error rates
+null_error_rate <- mean(null_pred_class != actual)
+full_error_rate <- mean(full_pred_class != actual)
+
+cat("Null Model Error Rate:", null_error_rate, "\n")
+cat("Full Model Error Rate:", full_error_rate, "\n")
+```
+
+The comparison of error rates between the null model and the full model provides evidence that incorporating the selected predictors enhances the model’s predictive accuracy. The null model, which includes no predictors, misclassifies approximately 9.64% of households. By contrast, the full model with the chosen predictors and interaction terms reduces the error rate to about 6.32%. This improvement in classification performance indicates that the included factors add meaningful explanatory power, allowing the model to more accurately distinguish between households that are below the poverty line and those that are not.
+
+## Conclusion
+
+This analysis provides a comprehensive look at the socioeconomic and demographic factors that influence household poverty risk in Connecticut. By fitting a logistic regression model and incorporating key predictors—educational attainment, housing cost burden, race, tenure status, health insurance coverage, and single-parent household status—we identified clear patterns associated with a household’s likelihood of living below the poverty line. The inclusion of interaction terms further highlighted that the impact of housing cost burden depends not only on the household’s educational background but also on its tenure status.
+
+The results clearly show that lower educational attainment, unstable or costly housing arrangements, and lack of health insurance coverage are closely tied to higher poverty risk. Additionally, households headed by individuals identifying as "Other" race, as well as those identifying as Black, are more vulnerable to poverty compared to their White counterparts. These findings underscore longstanding disparities and the need for targeted interventions.
+
+For the state of Connecticut, understanding these relationships is vital. With cost-of-living and housing expenses rising, this research can inform policymakers, community organizations, and social service agencies in crafting strategies that address the structural vulnerabilities—such as high housing costs and inadequate educational support—that drive households into poverty. By focusing resources on improving educational access, ensuring affordable housing, and expanding health coverage, Connecticut can take meaningful steps toward reducing poverty and fostering long-term economic stability for its residents.
