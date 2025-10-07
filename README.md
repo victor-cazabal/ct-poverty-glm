@@ -39,10 +39,10 @@ tidycensus::census_api_key("YOUR_KEY_HERE", install = TRUE)
 
 Run scripts in order:
 
-source("R/01_build_sample.R")   # writes data/ct_sample.csv (weighted sample; seed = 100)
-source("R/02_eda.R")            # saves EDA plots to results/figures/
-source("R/03_diagnostics.R")    # diagnostics & interaction plots to results/figures/
-source("R/04_tables.R")         # pretty GLM summary, ORs, LR test to results/tables/
+- source("R/01_build_sample.R")   # writes data/ct_sample.csv (weighted sample; seed = 100)
+- source("R/02_eda.R")            # saves EDA plots to results/figures/
+- source("R/03_diagnostics.R")    # diagnostics & interaction plots to results/figures/
+- source("R/04_tables.R")         # pretty GLM summary, ORs, LR test to results/tables/
 
 **🎲Randomness note:** `R/01_build_sample.R` uses `set.seed(100)`. Changing the seed will change the sample and estimates.
 
@@ -50,9 +50,18 @@ source("R/04_tables.R")         # pretty GLM summary, ORs, LR test to results/ta
 
 Final model (logit):
 
-\[
-\text{logit}(P(\text{POV}=1)) = \beta_0 + \beta_1\,\text{SP} + \beta_2\,\text{SCHL} + \beta_3\,\text{HCB} + \beta_4\,\text{HICOV} + \beta_5\,\text{TEN} + \beta_6\,\text{RACE} + \beta_7(\text{HCB}\times\text{TEN}) + \beta_8(\text{HCB}\times\text{SCHL})
-\]
+$$
+\text{logit}\!\big(P(\mathrm{POV}=1)\big)
+= \beta_0
++ \beta_1\,\mathrm{SP}
++ \beta_2\,\mathrm{SCHL}
++ \beta_3\,\mathrm{HCB}
++ \beta_4\,\mathrm{HICOV}
++ \beta_5\,\mathrm{TEN}
++ \beta_6\,\mathrm{RACE}
++ \beta_7\,(\mathrm{HCB}\cdot\mathrm{TEN})
++ \beta_8\,(\mathrm{HCB}\cdot\mathrm{SCHL})
+$$
 
 See **results/tables/** for:
 - `glm_summary.png` — coefficient table (log-odds)
