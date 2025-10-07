@@ -50,17 +50,8 @@ Run scripts in order:
 
 Final model (logit):
 
-$$
-\text{logit}\!\big(P(\mathrm{POV}=1)\big)
-= \beta_0
-+ \beta_1\,\mathrm{SP}
-+ \beta_2\,\mathrm{SCHL}
-+ \beta_3\,\mathrm{HCB}
-+ \beta_4\,\mathrm{HICOV}
-+ \beta_5\,\mathrm{TEN}
-+ \beta_6\,\mathrm{RACE}
-+ \beta_7\,(\mathrm{HCB}\cdot\mathrm{TEN})
-+ \beta_8\,(\mathrm{HCB}\cdot\mathrm{SCHL})
+$\text{logit}\!\big(P(\mathrm{POV}=1)\big)=\beta_0+\beta_1\,\mathrm{SP}+\beta_2\,\mathrm{SCHL}+\beta_3\,\mathrm{HCB}+\beta_4\,\mathrm{HICOV}+\beta_5\,\mathrm{TEN}+\beta_6\,\mathrm{RACE}+\beta_7(\mathrm{HCB}\cdot\mathrm{TEN})+\beta_8(\mathrm{HCB}\cdot\mathrm{SCHL})$
+ta_8\,(\mathrm{HCB}\cdot\mathrm{SCHL})
 $$
 
 See **results/tables/** for:
