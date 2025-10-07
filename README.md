@@ -50,7 +50,7 @@ Run scripts in order:
 
 Final model (logit):
 
-$$
+```math
 \operatorname{logit}\!\big(P(\mathrm{POV}=1)\big)
 = \beta_0
 + \beta_1\,\mathrm{SP}
@@ -61,7 +61,7 @@ $$
 + \beta_6\,\mathrm{RACE}
 + \beta_7\,(\mathrm{HCB}\cdot\mathrm{TEN})
 + \beta_8\,(\mathrm{HCB}\cdot\mathrm{SCHL})
-$$
+```
 
 See **results/tables/** for:
 - `glm_summary.png` — coefficient table (log-odds)
