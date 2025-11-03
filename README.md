@@ -52,7 +52,7 @@ Final model (logit):
 
 
 $$
-\operatorname{logit}\!\left(P(\mathrm{POV}=1)\right) = \beta_0 + \beta_1\,\mathrm{SP} + \beta_2\,\mathrm{SCHL} + \beta_3\,\mathrm{HCB} + \beta_4\,\mathrm{HICOV} + \beta_5\,\mathrm{TEN} + \beta_6\,\mathrm{RACE} + \beta_7\,(\mathrm{HCB}\times\mathrm{TEN}) + \beta_8\,(\mathrm{HCB}\times\mathrm{SCHL})
+\text{logit}\big(P(\text{POV}=1)\big) = \beta_0 + \beta_1\,SP + \beta_2\,SCHL + \beta_3\,HCB + \beta_4\,HICOV + \beta_5\,TEN + \beta_6\,RACE + \beta_7\,(HCB\cdot TEN) + \beta_8\,(HCB\cdot SCHL)
 $$
 
 See **results/tables/** for:
