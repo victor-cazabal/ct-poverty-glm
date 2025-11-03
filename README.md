@@ -52,15 +52,18 @@ Final model (logit):
 
 
 $$
-\operatorname{logit}\!\left(P(\mathrm{POV}=1)\right) = \beta_0
-+ \beta_1\,\mathrm{SP} + \beta_2\,\mathrm{SCHL} \\
-+ \beta_3\,\mathrm{HCB} + \beta_4\,\mathrm{HICOV} \\
-+ \beta_5\,\mathrm{TEN} + \beta_6\,\mathrm{RACE} \\
-+ \beta_7\,(\mathrm{HCB}\times\mathrm{TEN}) + \beta_8\,(\mathrm{HCB}\times\mathrm{SCHL})
+\operatorname{logit}\!\left(P(\mathrm{POV}=1)\right) = \beta_0 + \beta_1\,\mathrm{SP} + \beta_2\,\mathrm{SCHL} + \beta_3\,\mathrm{HCB} + \beta_4\,\mathrm{HICOV} + \beta_5\,\mathrm{TEN} + \beta_6\,\mathrm{RACE} + \beta_7\,(\mathrm{HCB}\times\mathrm{TEN}) + \beta_8\,(\mathrm{HCB}\times\mathrm{SCHL})
 $$
 
 See **results/tables/** for:
 - `glm_summary.png` — coefficient table (log-odds)
 - `odds_ratios.png` — exponentiated coefficients with 95% CI
 - `null_vs_final.png` — LR test (null vs final model)
-- `summary_stats.png` — NP & 
+- `summary_stats.png` — NP & HCB summary table
+
+### References
+
+- U.S. Census Bureau. *American Community Survey (ACS) Public Use Microdata Sample (PUMS), 2023.*
+- Walker, K., & Herman, M. **tidycensus**: Load US Census boundary and attribute data as tidyverse- and sf-ready data in R. <https://github.com/walkerke/tidycensus>
+
+
